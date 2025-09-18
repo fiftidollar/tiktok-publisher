@@ -26,8 +26,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const CLIENT_KEY = 'sbawc39rewr05919uc';
       const REDIRECT_URI = `${window.location.origin}/auth/callback`;
       
-      // Создаем URL для TikTok Login Kit
-      const authUrl = `https://www.tiktok.com/auth/authorize/` +
+      // Создаем URL для TikTok Login Kit согласно документации
+      const authUrl = `https://open-api.tiktok.com/oauth/authorize/` +
         `?client_key=${CLIENT_KEY}` +
         `&scope=user.info.basic,video.publish` +
         `&response_type=code` +
@@ -35,6 +35,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         `&state=${Date.now()}`;
       
       console.log('📱 TikTok Login Kit URL:', authUrl);
+      console.log('🔗 Redirect URI:', REDIRECT_URI);
+      console.log('🔑 Client Key:', CLIENT_KEY);
       
       // Открываем окно авторизации
       const authWindow = window.open(
@@ -42,6 +44,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         'tiktok-auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
+
+      if (!authWindow) {
+        throw new Error('Не удалось открыть окно авторизации. Проверьте блокировщик всплывающих окон.');
+      }
+
+      console.log('🪟 Окно авторизации открыто');
 
       // Слушаем сообщения от окна авторизации
       const messageHandler = (event: MessageEvent) => {
@@ -61,6 +69,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       };
 
       window.addEventListener('message', messageHandler);
+
+      // Таймаут для окна авторизации
+      const timeout = setTimeout(() => {
+        console.log('⏰ Таймаут авторизации');
+        authWindow.close();
+        window.removeEventListener('message', messageHandler);
+        setError('Время ожидания авторизации истекло. Попробуйте еще раз.');
+        setLoading(false);
+      }, 300000); // 5 минут
+
+      // Очищаем таймаут при успешной авторизации
+      const originalMessageHandler = messageHandler;
+      window.addEventListener('message', (event) => {
+        if (event.data.type === 'TIKTOK_AUTH_SUCCESS' || event.data.type === 'TIKTOK_AUTH_ERROR') {
+          clearTimeout(timeout);
+        }
+        originalMessageHandler(event);
+      });
       
     } catch (err: any) {
       console.error('❌ Ошибка при авторизации:', err);
