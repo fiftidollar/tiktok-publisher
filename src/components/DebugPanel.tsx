@@ -42,8 +42,10 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onToggle }) => {
 
   const checkApiStatus = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
-      const response = await fetch(`${apiUrl}/api/health`);
+      // Проверяем доступность TikTok API напрямую
+      const response = await fetch('https://open-api.tiktok.com/oauth/authorize/', {
+        method: 'HEAD'
+      });
       setApiStatus(response.ok ? 'online' : 'offline');
     } catch {
       setApiStatus('offline');
@@ -154,7 +156,7 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onToggle }) => {
         </div>
 
         <div style={{ marginBottom: '10px' }}>
-          <strong>API URL:</strong> {process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}
+          <strong>TikTok API:</strong> https://open-api.tiktok.com
         </div>
 
         <div style={{ marginBottom: '10px' }}>

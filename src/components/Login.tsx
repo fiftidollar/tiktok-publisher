@@ -22,20 +22,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       console.log('🚀 Начинаем авторизацию через TikTok...');
       
-      // Получаем URL для авторизации
-      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
-      const response = await fetch(`${apiUrl}/api/auth/tiktok/url`);
+      // Прямая генерация URL авторизации
+      const CLIENT_KEY = 'sbawc39rewr05919uc';
+      const REDIRECT_URI = `${window.location.origin}/auth/callback`;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const authUrl = `https://open-api.tiktok.com/oauth/authorize/` +
+        `?client_key=${CLIENT_KEY}` +
+        `&scope=user.info.basic,video.publish` +
+        `&response_type=code` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&state=${Date.now()}`;
       
-      const data = await response.json();
-      console.log('📱 Получен URL авторизации:', data.authUrl);
+      console.log('📱 URL авторизации:', authUrl);
       
       // Открываем окно авторизации
       const authWindow = window.open(
-        data.authUrl,
+        authUrl,
         'tiktok-auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
@@ -60,7 +62,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       window.addEventListener('message', messageHandler);
       
     } catch (err: any) {
-      console.error('❌ Ошибка при получении URL авторизации:', err);
+      console.error('❌ Ошибка при авторизации:', err);
       setError(`Ошибка авторизации: ${err.message}`);
     } finally {
       setLoading(false);
@@ -71,44 +73,71 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       console.log('🔄 Обмениваем код на токен...');
       
-      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
-      const response = await fetch(`${apiUrl}/api/auth/tiktok`, {
+      // Прямой запрос к TikTok API
+      const CLIENT_KEY = 'sbawc39rewr05919uc';
+      const CLIENT_SECRET = 'ESMTUZ3ELmCzsfsqwzroyDU0krxwVnFe';
+      const REDIRECT_URI = `${window.location.origin}/auth/callback`;
+      
+      const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({
+          client_key: CLIENT_KEY,
+          client_secret: CLIENT_SECRET,
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: REDIRECT_URI
+        })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.text();
+        console.error('❌ Ошибка обмена токена:', errorData);
+        throw new Error(`Ошибка обмена токена: ${tokenResponse.status}`);
       }
 
-      const tokenData = await response.json();
-      console.log('🎫 Получен токен доступа:', tokenData.access_token);
+      const tokenData = await tokenResponse.json();
+      console.log('🎫 Получен токен доступа:', tokenData);
 
-      // Получаем информацию о пользователе
-      const userResponse = await fetch(`${apiUrl}/api/user/info`, {
+      if (tokenData.error) {
+        throw new Error(tokenData.error.message || 'Ошибка обмена токена');
+      }
+
+      const accessToken = tokenData.data.access_token;
+      console.log('✅ Токен получен успешно');
+
+      // Получаем информацию о пользователе напрямую от TikTok
+      const userResponse = await fetch('https://open-api.tiktok.com/user/info/', {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-        },
+          'Authorization': `Bearer ${accessToken}`
+        }
       });
 
       if (!userResponse.ok) {
+        const errorData = await userResponse.text();
+        console.error('❌ Ошибка получения информации о пользователе:', errorData);
         throw new Error('Не удалось получить информацию о пользователе');
       }
 
       const userData = await userResponse.json();
       console.log('👤 Информация о пользователе:', userData);
 
+      if (userData.error) {
+        throw new Error(userData.error.message || 'Ошибка получения информации о пользователе');
+      }
+
       const user: User = {
-        id: userData.open_id || userData.id,
-        username: userData.username || 'tiktok_user',
-        displayName: userData.display_name || 'TikTok User',
-        avatarUrl: userData.avatar_url
+        id: userData.data.user.open_id || userData.data.user.id,
+        username: userData.data.user.username || 'tiktok_user',
+        displayName: userData.data.user.display_name || 'TikTok User',
+        avatarUrl: userData.data.user.avatar_url
       };
 
+      // Сохраняем токен для дальнейшего использования
+      localStorage.setItem('tiktok_access_token', accessToken);
+      
       onLogin(user);
       
     } catch (err: any) {
