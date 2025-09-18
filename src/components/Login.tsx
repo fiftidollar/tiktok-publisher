@@ -20,20 +20,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      console.log('🚀 Начинаем авторизацию через TikTok...');
+      console.log('🚀 Начинаем авторизацию через TikTok Login Kit...');
       
-      // Прямая генерация URL авторизации
+      // Используем TikTok Login Kit согласно документации
       const CLIENT_KEY = 'sbawc39rewr05919uc';
       const REDIRECT_URI = `${window.location.origin}/auth/callback`;
       
-      const authUrl = `https://open-api.tiktok.com/oauth/authorize/` +
+      // Создаем URL для TikTok Login Kit
+      const authUrl = `https://www.tiktok.com/auth/authorize/` +
         `?client_key=${CLIENT_KEY}` +
         `&scope=user.info.basic,video.publish` +
         `&response_type=code` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&state=${Date.now()}`;
       
-      console.log('📱 URL авторизации:', authUrl);
+      console.log('📱 TikTok Login Kit URL:', authUrl);
       
       // Открываем окно авторизации
       const authWindow = window.open(
@@ -71,13 +72,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleAuthCode = async (code: string) => {
     try {
-      console.log('🔄 Обмениваем код на токен...');
+      console.log('🔄 Обмениваем код на токен через TikTok API...');
       
-      // Прямой запрос к TikTok API
+      // Используем правильный endpoint согласно документации
       const CLIENT_KEY = 'sbawc39rewr05919uc';
       const CLIENT_SECRET = 'ESMTUZ3ELmCzsfsqwzroyDU0krxwVnFe';
       const REDIRECT_URI = `${window.location.origin}/auth/callback`;
       
+      // Обмен кода на токен согласно документации TikTok
       const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
         method: 'POST',
         headers: {
@@ -95,30 +97,36 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.text();
         console.error('❌ Ошибка обмена токена:', errorData);
-        throw new Error(`Ошибка обмена токена: ${tokenResponse.status}`);
+        throw new Error(`Ошибка обмена токена: ${tokenResponse.status} - ${errorData}`);
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('🎫 Получен токен доступа:', tokenData);
+      console.log('🎫 Ответ от TikTok API:', tokenData);
 
       if (tokenData.error) {
         throw new Error(tokenData.error.message || 'Ошибка обмена токена');
       }
 
+      if (!tokenData.data || !tokenData.data.access_token) {
+        throw new Error('Не получен access_token от TikTok');
+      }
+
       const accessToken = tokenData.data.access_token;
       console.log('✅ Токен получен успешно');
 
-      // Получаем информацию о пользователе напрямую от TikTok
+      // Получаем информацию о пользователе через Display API
       const userResponse = await fetch('https://open-api.tiktok.com/user/info/', {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (!userResponse.ok) {
         const errorData = await userResponse.text();
         console.error('❌ Ошибка получения информации о пользователе:', errorData);
-        throw new Error('Не удалось получить информацию о пользователе');
+        throw new Error(`Не удалось получить информацию о пользователе: ${userResponse.status}`);
       }
 
       const userData = await userResponse.json();
@@ -126,6 +134,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (userData.error) {
         throw new Error(userData.error.message || 'Ошибка получения информации о пользователе');
+      }
+
+      if (!userData.data || !userData.data.user) {
+        throw new Error('Не получена информация о пользователе');
       }
 
       const user: User = {
@@ -137,7 +149,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       // Сохраняем токен для дальнейшего использования
       localStorage.setItem('tiktok_access_token', accessToken);
+      localStorage.setItem('tiktok_user_data', JSON.stringify(user));
       
+      console.log('✅ Пользователь авторизован:', user);
       onLogin(user);
       
     } catch (err: any) {

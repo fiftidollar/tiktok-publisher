@@ -42,7 +42,7 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onToggle }) => {
 
   const checkApiStatus = async () => {
     try {
-      // Проверяем доступность TikTok API напрямую
+      // Проверяем доступность TikTok API согласно документации
       const response = await fetch('https://open-api.tiktok.com/oauth/authorize/', {
         method: 'HEAD'
       });

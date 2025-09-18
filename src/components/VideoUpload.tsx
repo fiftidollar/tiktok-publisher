@@ -54,16 +54,57 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ user }) => {
     }
 
     setUploading(true);
-    setStatus({ type: 'info', message: 'Загрузка видео...' });
+    setStatus({ type: 'info', message: 'Загрузка видео через TikTok Content Posting API...' });
 
     try {
-      // Здесь будет реальная загрузка через TikTok API
-      // Пока что имитируем процесс
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log('🚀 Начинаем загрузку видео в TikTok...');
       
+      // Получаем токен из localStorage
+      const accessToken = localStorage.getItem('tiktok_access_token');
+      if (!accessToken) {
+        throw new Error('Токен доступа не найден. Пожалуйста, авторизуйтесь заново.');
+      }
+
+      // Создаем FormData для загрузки
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+      formData.append('description', description || '');
+      formData.append('privacy_level', privacyLevel);
+
+      console.log('📤 Отправляем видео в TikTok...');
+
+      // Загружаем видео через Content Posting API
+      const uploadResponse = await fetch('https://open-api.tiktok.com/share/video/upload/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.text();
+        console.error('❌ Ошибка загрузки видео:', errorData);
+        throw new Error(`Ошибка загрузки: ${uploadResponse.status} - ${errorData}`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      console.log('📹 Ответ от TikTok:', uploadData);
+
+      if (uploadData.error) {
+        throw new Error(uploadData.error.message || 'Ошибка загрузки видео');
+      }
+
+      if (!uploadData.data || !uploadData.data.video_id) {
+        throw new Error('Не получен video_id от TikTok');
+      }
+
+      const videoId = uploadData.data.video_id;
+      console.log('✅ Видео загружено успешно, ID:', videoId);
+
       setStatus({ 
         type: 'success', 
-        message: 'Видео успешно загружено и опубликовано в TikTok!' 
+        message: `Видео успешно загружено в TikTok! ID: ${videoId}` 
       });
       
       // Сбрасываем форму
@@ -72,10 +113,11 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ user }) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Ошибка при загрузке видео:', error);
       setStatus({ 
         type: 'error', 
-        message: 'Ошибка при загрузке видео. Попробуйте еще раз.' 
+        message: `Ошибка при загрузке видео: ${error.message}` 
       });
     } finally {
       setUploading(false);
