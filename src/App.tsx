@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import VideoUpload from './components/VideoUpload';
+import AuthCallback from './components/AuthCallback';
 import ErrorBoundary from './components/ErrorBoundary';
 import DebugPanel from './components/DebugPanel';
 // import ApiService from './services/ApiService';
@@ -63,6 +64,10 @@ function App() {
                 element={
                   user ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
                 } 
+              />
+              <Route 
+                path="/auth/callback" 
+                element={<AuthCallback />} 
               />
               <Route 
                 path="/dashboard" 

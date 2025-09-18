@@ -37,7 +37,7 @@ const upload = multer({
 const TIKTOK_API_BASE = 'https://open-api.tiktok.com';
 const CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
 const CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI;
+const REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || 'http://localhost:3000/auth/callback';
 
 // Хранилище для токенов (в продакшене используйте Redis или базу данных)
 const tokenStore = new Map();
