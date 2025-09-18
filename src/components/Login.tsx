@@ -23,7 +23,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       console.log('🚀 Начинаем авторизацию через TikTok...');
       
       // Получаем URL для авторизации
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/tiktok/url`);
+      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
+      const response = await fetch(`${apiUrl}/api/auth/tiktok/url`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -70,7 +71,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       console.log('🔄 Обмениваем код на токен...');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/tiktok`, {
+      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
+      const response = await fetch(`${apiUrl}/api/auth/tiktok`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +89,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       console.log('🎫 Получен токен доступа:', tokenData.access_token);
 
       // Получаем информацию о пользователе
-      const userResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/user/info`, {
+      const userResponse = await fetch(`${apiUrl}/api/user/info`, {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
         },

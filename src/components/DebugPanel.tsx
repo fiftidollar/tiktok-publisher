@@ -42,7 +42,8 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onToggle }) => {
 
   const checkApiStatus = async () => {
     try {
-      const response = await fetch('/api/health');
+      const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
+      const response = await fetch(`${apiUrl}/api/health`);
       setApiStatus(response.ok ? 'online' : 'offline');
     } catch {
       setApiStatus('offline');
