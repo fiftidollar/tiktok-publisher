@@ -24,3 +24,5 @@ echo 2. Добавьте секреты Vercel (см. DEPLOY.md)
 echo 3. GitHub Actions автоматически задеплоят проект
 echo.
 pause
+
+

@@ -26,3 +26,5 @@ echo Settings → Secrets and variables → Actions → New repository secret
 echo.
 
 pause
+
+

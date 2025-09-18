@@ -7,6 +7,7 @@ import VideoUpload from './components/VideoUpload';
 import AuthCallback from './components/AuthCallback';
 import ErrorBoundary from './components/ErrorBoundary';
 import DebugPanel from './components/DebugPanel';
+import DeployStatus from './components/DeployStatus';
 // import ApiService from './services/ApiService';
 
 interface User {
@@ -20,6 +21,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [debugVisible, setDebugVisible] = useState(false);
+  const [deployVisible, setDeployVisible] = useState(false);
 
   useEffect(() => {
     // Проверяем, есть ли сохраненный пользователь
@@ -90,6 +92,10 @@ function App() {
           <DebugPanel 
             isVisible={debugVisible} 
             onToggle={() => setDebugVisible(!debugVisible)} 
+          />
+          <DeployStatus 
+            isVisible={deployVisible} 
+            onToggle={() => setDeployVisible(!deployVisible)} 
           />
         </div>
       </Router>

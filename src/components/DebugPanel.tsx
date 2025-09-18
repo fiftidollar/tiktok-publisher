@@ -187,3 +187,5 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onToggle }) => {
 };
 
 export default DebugPanel;
+
+
