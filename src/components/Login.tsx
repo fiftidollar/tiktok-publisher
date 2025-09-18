@@ -20,23 +20,98 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      // Здесь будет реальная интеграция с TikTok OAuth
-      // Пока что используем моковые данные для демонстрации
-      const mockUser: User = {
-        id: 'mock_user_id',
-        username: 'test_user',
-        displayName: 'Test User',
-        avatarUrl: 'https://via.placeholder.com/100x100/ff0050/ffffff?text=T'
+      console.log('🚀 Начинаем авторизацию через TikTok...');
+      
+      // Получаем URL для авторизации
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/tiktok/url`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('📱 Получен URL авторизации:', data.authUrl);
+      
+      // Открываем окно авторизации
+      const authWindow = window.open(
+        data.authUrl,
+        'tiktok-auth',
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
+
+      // Слушаем сообщения от окна авторизации
+      const messageHandler = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'TIKTOK_AUTH_SUCCESS') {
+          console.log('✅ Авторизация успешна, получен код:', event.data.code);
+          handleAuthCode(event.data.code);
+          window.removeEventListener('message', messageHandler);
+          authWindow?.close();
+        } else if (event.data.type === 'TIKTOK_AUTH_ERROR') {
+          console.error('❌ Ошибка авторизации:', event.data.error);
+          setError(event.data.error);
+          window.removeEventListener('message', messageHandler);
+          authWindow?.close();
+        }
       };
 
-      // Имитируем задержку API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      window.addEventListener('message', messageHandler);
       
-      onLogin(mockUser);
-    } catch (err) {
-      setError('Ошибка авторизации. Попробуйте еще раз.');
+    } catch (err: any) {
+      console.error('❌ Ошибка при получении URL авторизации:', err);
+      setError(`Ошибка авторизации: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAuthCode = async (code: string) => {
+    try {
+      console.log('🔄 Обмениваем код на токен...');
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/tiktok`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const tokenData = await response.json();
+      console.log('🎫 Получен токен доступа:', tokenData.access_token);
+
+      // Получаем информацию о пользователе
+      const userResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/user/info`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Не удалось получить информацию о пользователе');
+      }
+
+      const userData = await userResponse.json();
+      console.log('👤 Информация о пользователе:', userData);
+
+      const user: User = {
+        id: userData.open_id || userData.id,
+        username: userData.username || 'tiktok_user',
+        displayName: userData.display_name || 'TikTok User',
+        avatarUrl: userData.avatar_url
+      };
+
+      onLogin(user);
+      
+    } catch (err: any) {
+      console.error('❌ Ошибка при обмене кода на токен:', err);
+      setError(`Ошибка авторизации: ${err.message}`);
     }
   };
 

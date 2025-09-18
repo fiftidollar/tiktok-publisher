@@ -4,6 +4,8 @@ import Header from './components/Header';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import VideoUpload from './components/VideoUpload';
+import ErrorBoundary from './components/ErrorBoundary';
+import DebugPanel from './components/DebugPanel';
 // import ApiService from './services/ApiService';
 
 interface User {
@@ -16,6 +18,7 @@ interface User {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugVisible, setDebugVisible] = useState(false);
 
   useEffect(() => {
     // Проверяем, есть ли сохраненный пользователь
@@ -49,37 +52,43 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="App">
-        <Header user={user} onLogout={handleLogout} />
-        <div className="container">
-          <Routes>
-            <Route 
-              path="/login" 
-              element={
-                user ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
-              } 
-            />
-            <Route 
-              path="/dashboard" 
-              element={
-                user ? <Dashboard user={user} /> : <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/upload" 
-              element={
-                user ? <VideoUpload user={user} /> : <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/" 
-              element={<Navigate to={user ? "/dashboard" : "/login"} replace />} 
-            />
-          </Routes>
+    <ErrorBoundary>
+      <Router>
+        <div className="App">
+          <Header user={user} onLogout={handleLogout} />
+          <div className="container">
+            <Routes>
+              <Route 
+                path="/login" 
+                element={
+                  user ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
+                } 
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  user ? <Dashboard user={user} /> : <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/upload" 
+                element={
+                  user ? <VideoUpload user={user} /> : <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/" 
+                element={<Navigate to={user ? "/dashboard" : "/login"} replace />} 
+              />
+            </Routes>
+          </div>
+          <DebugPanel 
+            isVisible={debugVisible} 
+            onToggle={() => setDebugVisible(!debugVisible)} 
+          />
         </div>
-      </div>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
